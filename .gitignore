@@ -12,3 +12,5 @@ vendor/
 
 *.out
 coverage.txt
+
+.env
