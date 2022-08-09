@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/MinaWilliam/movies/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -32,6 +33,7 @@ type config struct {
 type app struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 func init() {
@@ -64,17 +66,18 @@ func startServer() {
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	app := &app{
-		config: config,
-		logger: logger,
-	}
-
 	db, err := openDB(config)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer db.Close()
 	logger.Printf("database connection pool established")
+
+	app := &app{
+		config: config,
+		logger: logger,
+		models: data.NewModels(db),
+	}
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", config.port),

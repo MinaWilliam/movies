@@ -14,10 +14,10 @@ import (
 
 type envelope map[string]interface{}
 
-func (app *app) getIdParam(r *http.Request) (uint64, error) {
+func (app *app) getIdParam(r *http.Request) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
 
-	id, err := strconv.ParseUint(params.ByName("id"), 10, 64)
+	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
 	if err != nil || id < 1 {
 		return 0, errors.New("invaid id parameter")
 	}
