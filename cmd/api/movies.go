@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/MinaWilliam/movies/internal/data"
+	"github.com/MinaWilliam/movies/internal/validator"
 )
 
 func (app *app) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +24,20 @@ func (app *app) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	err := app.readJson(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	movie := &data.Movie{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
