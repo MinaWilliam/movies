@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/MinaWilliam/movies/internal/data"
 	"github.com/MinaWilliam/movies/internal/validator"
@@ -63,6 +64,24 @@ func (app *app) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	movie, err := app.models.Movies.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	if r.Header.Get("X-Expected-Version") != "" {
+		if strconv.FormatInt(int64(movie.Version), 10) != r.Header.Get("X-Expected-Version") {
+			app.editConflictResponse(w, r)
+			return
+		}
+	}
+
 	var input struct {
 		Title   *string       `json:"title"`
 		Year    *int32        `json:"year"`
@@ -91,14 +110,6 @@ func (app *app) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 
 	v := validator.New()
 
-	movie := &data.Movie{
-		ID:      id,
-		Title:   input.Title,
-		Year:    input.Year,
-		Runtime: input.Runtime,
-		Genres:  input.Genres,
-	}
-
 	if data.ValidateMovie(v, movie); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
@@ -107,8 +118,8 @@ func (app *app) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 	err = app.models.Movies.Update(movie)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
